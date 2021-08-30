@@ -162,14 +162,15 @@ export async function longCard(opts?: Options) {
 
     //Counters
     //
+    ctx.textAlign = 'left';
     ctx.fillStyle = colors.lightgrey;
     ctx.drawImage(await images.icons.server, w * 0.3
         , h * 0.65, w * 0.0625, w * 0.0625);
     ctx.changeFontSize(h * 0.15 + 'px');
-    ctx.fillText(fancyCount(opts.guilds), w * 0.3 + h * 0.45, h * 0.65 + h * .15, h * 0.45);
+    ctx.fillText(fancyCount(opts.guilds), w * 0.25 + h * 0.45, h * 0.65 + h * .15, h * 0.45);
 
-    ctx.drawImage(await images.icons.vote, w * 0.59375, h * 0.65, w * 0.0625, w * 0.0625);
-    ctx.fillText(fancyCount(opts.votes), w * 0.59375 + h * 0.45, h * 0.65 + h * .15, h * 0.45);
+    ctx.drawImage(await images.icons.vote, w * 0.6, h * 0.65, w * 0.0625, w * 0.0625);
+    ctx.fillText(fancyCount(opts.votes), w * 0.55 + h * 0.45, h * 0.65 + h * .15, h * 0.45);
 
     //Library
     //

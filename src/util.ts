@@ -24,7 +24,7 @@ export type Options = {
     guilds: number
     votes: number
     library?: keyof typeof images.library | false,
-    botList?: 'dbl.eu'
+    botList?: string
 }
 
 export const defaultOptions: Options = {
