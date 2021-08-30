@@ -1,0 +1,18 @@
+# Only important for git repo
+examples
+CHANGELOG.md
+
+#Developement
+node_modules
+testing
+.vscode
+*.map
+*.tgz
+
+package-lock.json
+tsconfig.json
+
+#Git
+.gitignore
+.gitattributes
+.github
