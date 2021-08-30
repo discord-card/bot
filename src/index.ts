@@ -1,253 +1,294 @@
-import { GuildMember } from 'discord.js';
-import { createCanvas, loadImage, CanvasRenderingContext2D as ctx2D, Canvas, Image } from 'canvas';
-import { writeFileSync } from 'fs';
+
+import * as drawMultilineText from 'canvas-multiline-text';
+import { createCanvas, loadImage, CanvasRenderingContext2D as ctx2D } from 'canvas';
+import { } from '@discord-card/core';
 import { join } from 'path';
-import { Gradient, Theme } from '@discord-card/core';
-export { Gradient, Theme } from '@discord-card/core';
 
 
-
-const production = true;
-
-function getFontSize(str: string) {
-    if (str.length < 18) return 30;
-    return (600 * Math.pow(str.length, -1.05)).toFixed(0);
+const root = join(__dirname, '..', 'images');
+const size = 100;
+const colors = {
+    blue: '#7289DA',
+    white: '#FFFFFF',
+    lightgrey: '#99AAB5',
+    grey: '#2C2F33',
+    darkgrey: '#23272A',
+    black: '#000000',
+    online: '#2db85b',
+    offline: '#666',
+    dnd: '#cc3737',
+    idle: '#dab026'
 }
 
-async function toImage(image: ImageResolvable, name?: string) {
-    if (image instanceof Canvas) {
-        let img = new Image();
-        img.src = (image as Canvas).toDataURL();
-        return img;
-    } else if (image instanceof Image)
-        return image
-    else if (typeof image === 'string' || image instanceof Buffer)
-        return await loadImage(image)
-    else throw new Error('Invalid Image Format for: ' + name ?? 'Image');
+export type Options = {
+    name: string
+    tag: string
+    description?: string
+    status: keyof typeof images.status
+    guilds: number
+    votes: number
+    library?: keyof typeof images.library | false
+}
+const defaultOptions: Options = {
+    name: '',
+    tag: '',
+    description: '',
+    status: 'offline',
+    guilds: 0,
+    votes: 0,
+    library: false
 }
 
-const root = join(__dirname, '..', 'images')
-export var themes = {
-    'dark': { color: '#ffffff', image: join(root, 'dark.png') },
-    'circuit': { color: '#ffffff', image: join(root, 'circuit.png') },
-    'code': { color: '#ffffff', image: join(root, 'code.png'), font: 'Source Sans Pro' },
-}
-
-type Color = `#${string}` | Gradient;
-type ImageResolvable = Canvas | Image | Buffer | string;
-
-export type CardOptions = {
-    /** Select a theme with some default options */
-    theme?: (keyof typeof themes);
-    /** Options for the text on the card */
-    text?: {
-        /** Text in the Top */
-        title?: string;
-        /**Text in the middle(big) */
-        text?: string;
-        /** Text on the bottom */
-        subtitle?: string;
-        /** Font Color */
-        color?: Color;
-        /** Custom Font */
-        font?: string;
+const images = {
+    avatar: loadImage(join(root, 'plasma.png')),
+    library: {
+        'discord.js': loadImage(join(root, 'library', 'discord.js.png')),
+        'discord.py': loadImage(join(root, 'library', 'discord.py.png')),
+        'jda': loadImage(join(root, 'library', 'jda.png')),
+        'discord4j': loadImage(join(root, 'library', 'discord4j.svg'))
     },
-    /** Options for the avatar */
-    avatar?: {
-        /** The Avatar Image, can be a URL/Canvas/Image or Buffer */
-        image?: ImageResolvable;
-        /** Width of the outline around the avatar */
-        outlineWidth?: number;
-        /** Color of the outline */
-        outlineColor?: Color;
+    icons: {
+        server: loadImage(join(root, 'icons', 'server.svg')),
+        vote: loadImage(join(root, 'icons', 'vote.svg')),
+    },
+    status: {
+        dnd: loadImage(join(root, 'status', 'dnd.svg')),
+        idle: loadImage(join(root, 'status', 'idle.svg')),
+        online: loadImage(join(root, 'status', 'online.svg')),
+        streaming: loadImage(join(root, 'status', 'streaming.svg')),
+        offline: loadImage(join(root, 'status', 'offline.svg')),
     }
-    /** Override the Background, can be a URL/Canvas/Image or Buffer  */
-    background?: ImageResolvable;
-    /** If the background should be blurred (true -> 3) */
-    blur?: boolean | number;
-    /** When enabled a blurred border is drawn, enabled by default */
-    border?: boolean;
-    /** If enabled the edges will be rounded, enabled by default */
-    rounded?: boolean;
-    //custom?: ModuleFunction;
+}
+
+function fancyCount(n: number) {
+    if (n > 1000000)
+        return Math.floor(n / 1000000) + 'M'
+
+    if (n > 1000) {
+        if (n < 10000) return (n / 1000).toFixed(1) + 'k'
+        return Math.floor(n / 1000) + 'k'
+    }
+
+    return Math.floor(n) + '';
 }
 
 
-
-
-var count = 0;
-function snap(c: Canvas) {
-    if (!production) writeFileSync(`./testing/snapshots/${count}.png`, c.toBuffer('image/png'));
-    count++;
-}
-
-
-export async function drawCard(options: CardOptions): Promise<Buffer> {
-    const w = 700, h = 250;
+export function setupCard(w: number, h: number) {
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext('2d');
-    ctx.w = ctx.width = w;
-    ctx.h = ctx.height = h;
 
-    //@ts-ignore
-    let theme: Theme;
-    let background: Image;
+    ctx.font = '85px \'Source Sans Pro\'';
 
-    options.border ??= true;
-    options.rounded ??= true;
+    ctx.fillStyle = colors.darkgrey;
+    ctx.roundRect(0, 0, w, h, size * .75).clip();
+    ctx.fill();
 
-    //Parsing the Theme
-    if (typeof (options.theme ?? 'code') === 'string') {
-        theme = themes[options.theme ?? 'code'];
-        if (!theme) throw new Error('Invalid theme, use: ' + Object.keys(themes).join(' | '));
+    return ({
+        canvas,
+        ctx
+    })
+}
 
-        background = await loadImage(theme.image);
-    } else throw new Error('Invalid theme, use: ' + Object.keys(themes).join(' | '));
+export async function smallCard(opts?: Options) {
+    opts = Object.assign({ ...defaultOptions }, opts ?? { });
 
-    if (options.background) background = await toImage(options.background, 'Background');
+    const { canvas, ctx } = setupCard(8 * size, 5 * size),
+        { width: w, height: h } = canvas;
 
-    ctx.theme = theme;
-    /** Border width */
-    const b = 10; //Border
+    // box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    // ctx.shadowOffsetY = 40;
+    // ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+    // ctx.shadowOffsetX = 40;
 
-    //Background
-    snap(canvas);
-    if (options.rounded) ctx.roundRect(0, 0, w, h, h / 15);
-    else ctx.rect(0, 0, w, h);
-    ctx.clip();
-
-    if (options.border) {
-        ctx.drawImage(background, 0, 0, w, h);
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, w, h);
-        ctx.globalAlpha = 1;
-
-        ctx.blur(3);
-    }
-
-
-    snap(canvas);
-    //Rounded Edges
-    if (options.border) {
-        if (options.rounded) {
-            ctx.roundRect(
-                b, b,
-                w - 2 * b, h - 2 * b,
-                h / 20
-            );
-        } else {
-            ctx.rect(
-                b, b,
-                w - (2 * b), h - (2 * b)
-            );
-        }
-        ctx.clip();
-    } else {
-        if (options.rounded) ctx.roundRect(0, 0, w, h, h / 15).clip();
-        else ctx.rect(0, 0, w, h);
-    }
-
-
-    var temp: Canvas | Image = background;
-    if (options.blur) {
-        var blur = createCanvas(w, h), blur_ctx = blur.getContext('2d') as ctx2D;
-        blur_ctx.drawImage(background, 0, 0, w, h);
-
-        if (typeof options.blur === 'boolean') blur_ctx.blur(3);
-        else blur_ctx.blur(options.blur);
-
-        temp = blur;
-    }
-    if (options.border) ctx.drawImage(temp, b, b, w - b * 2, h - b * 2);
-    else ctx.drawImage(temp, 0, 0, w, h);
-
-
-    snap(canvas);
-
-
-    //Setting Styles
-    ctx.fillStyle = (options.text?.color ?? theme.color).toString(ctx);
-    //ctx.strokeStyle = theme.color.toString(ctx);
-    ctx.font = '30px ' + ((options.text?.font ?? theme.font) ?? 'sans-serif');
-
-
-    //Drawing
-    //Title
-    ctx.changeFontSize('30px')
-        .fillText(options.text?.title ?? '', ctx.width / 2.7, ctx.height / 3.5);
-
-    //Text
-    ctx.changeFontSize(getFontSize(options.text?.text ?? '') + 'px')
-        .fillText(options.text?.text ?? '', ctx.width / 2.7, ctx.height / 1.8);
-
-    //Subtitle
-    ctx.changeFontSize('25px')
-        .fillText(options.text?.subtitle ?? '', ctx.width / 2.7, ctx.height / 1.3);
-
-    //Avatar Image
-    const radius = h / 2.5;
-
-    ctx.lineWidth = 6
+    //Avatar
+    //
+    ctx.save();
+    ctx.translate(size * .5, size * 1.5);
+    ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.arc(h / 2, h / 2, radius, 0, Math.PI * 2, true);
+    ctx.arc(size * 1.5, size * 1.5, size * 1.5, 0, Math.PI * 2, true);
     ctx.closePath();
     ctx.clip();
 
-    const { avatar } = options;
-    if (avatar) {
-        const { image: avatarImage, outlineWidth, outlineColor } = avatar;
-        if (avatarImage) {
-            ctx.drawImage(
-                await toImage(avatarImage),
-                ((h / 2) - radius) + (avatar.outlineWidth ?? 0), //x
-                ((h / 2) - radius) + (avatar.outlineWidth ?? 0), //y
-                (radius * 2) - (avatar.outlineWidth ?? 0) * 2, //width
-                (radius * 2) - (avatar.outlineWidth ?? 0) * 2//height
-            );
-        }
+    ctx.fillStyle = colors.grey;
+    ctx.fillRect(0, 0, size * 3, size * 3);
+    ctx.drawImage(await images.avatar, 0, 0, size * 3, size * 3);
+    ctx.restore();
 
-        if (outlineWidth) {
-            ctx.beginPath();
-            ctx.arc(h / 2, h / 2, radius - (outlineWidth / 2), 0, Math.PI * 2, true);
-            ctx.closePath();
+    //Status
+    ctx.save();
+    ctx.translate(size * 3.05, size * 4.05);
 
-            ctx.lineWidth = outlineWidth;
-            ctx.strokeStyle = (outlineColor ?? theme.color ?? '#fff').toString(ctx);
+    ctx.fillStyle = colors.darkgrey;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * .4, 0, Math.PI * 2, true); ctx.closePath();
+    ctx.fill();
 
-            ctx.stroke();
-        }
+    ctx.drawImage(await images.status[opts.status], -size * .3, -size * .3, size * .6, size * .6);
+    ctx.restore();
+
+
+    //User Text
+    //
+    ctx.fillStyle = colors.blue;
+    ctx.save();
+    ctx.translate(size * .5, size * .3 + size * .65);
+    ctx.changeFontSize(size * .65 + 'px')
+    ctx.fillText(opts.name, size * .1, 0, size * 5);
+
+    ctx.fillStyle = colors.lightgrey;
+    ctx.fillText('#', size * 5, 0);
+    ctx.fillText(opts.tag, size * 5.5, 0, size * 1.5);
+    ctx.restore();
+
+
+
+    //Counters
+    //
+    ctx.save();
+    ctx.translate(size * 4.5, size * 1.9);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = colors.lightgrey;
+    ctx.changeFontSize(size * .65 + 'px');
+
+    ctx.drawImage(await images.icons.server, size * .125, size * .125, size * .75, size * .75);
+    ctx.fillText(fancyCount(opts.guilds), size * 2, size * .7, size * 2.25);
+    ctx.translate(0, size * 1.15);
+    ctx.drawImage(await images.icons.vote, size * .125, size * .125, size * .75, size * .75);
+    ctx.fillText(fancyCount(opts.votes), size * 2, size * .7, size * 2.25);
+    ctx.restore();
+
+    return canvas;
+}
+
+export async function longCard(opts?: Options) {
+    opts = Object.assign({ ...defaultOptions }, opts ?? { });
+
+    const { canvas, ctx } = setupCard(16 * size, 5 * size),
+        { width: w, height: h } = canvas;
+
+    // box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    // ctx.shadowOffsetY = 40;
+    // ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+    // ctx.shadowOffsetX = 40;
+
+    //Avatar
+    //
+    ctx.save();
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(h / 2, h / 2, h * 0.3, 0, Math.PI * 2, true);
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.fillStyle = colors.grey;
+    ctx.fillRect(h * 0.2, h * 0.2, h * 0.6, h * 0.6);
+    ctx.drawImage(await images.avatar, h * 0.2, h * 0.2, h * 0.6, h * 0.6);
+    ctx.restore();
+
+    //Status
+    ctx.save();
+    ctx.translate(size * 3.55, size * 3.55);
+
+    ctx.fillStyle = colors.darkgrey;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * .4, 0, Math.PI * 2, true); ctx.closePath();
+    ctx.fill();
+
+    ctx.drawImage(await images.status[opts.status], -size * .3, -size * .3, size * .6, size * .6);
+    ctx.restore();
+
+
+
+
+    //User Text
+    //
+    ctx.fillStyle = colors.blue;
+    ctx.changeFontSize(h * .17 + 'px')
+    ctx.fillText(opts.name, w * 0.3, h * 0.45, w * 0.425);
+    ctx.fillStyle = colors.lightgrey;
+    ctx.fillText('#', w * 0.3 + w * 0.4375, h * 0.45);
+    ctx.fillText(opts.tag, w * 0.3 + w * 0.425 + w * 0.05, h * 0.45, w * .15625);
+
+    //Botlist URL
+    //
+    //ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = colors.blue;
+    ctx.roundRect(w * .5, -(w * 0.0625), w * .5, h * .4, w * 0.0625);
+    ctx.fill();
+    ctx.fillRect(w * 0.625, 0, w * .5, w * 0.0625);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.changeFontSize(h * 0.15 + 'px')
+    ctx.fillText('discord-botlist.eu', w * .55 + h * 0.65, h * .15, w * .421875);
+
+    //Counters
+    //
+    ctx.fillStyle = colors.lightgrey;
+    ctx.drawImage(await images.icons.server, w * 0.3
+        , h * 0.65, w * 0.0625, w * 0.0625);
+    ctx.changeFontSize(h * 0.15 + 'px');
+    ctx.fillText(fancyCount(opts.guilds), w * 0.3 + h * 0.45, h * 0.65 + h * .15, h * 0.45);
+
+    ctx.drawImage(await images.icons.vote, w * 0.59375, h * 0.65, w * 0.0625, w * 0.0625);
+    ctx.fillText(fancyCount(opts.votes), w * 0.59375 + h * 0.45, h * 0.65 + h * .15, h * 0.45);
+
+    //Library
+    //
+    if (opts.library) {
+        ctx.fillStyle = colors.grey;
+        ctx.roundRect(w * .875, h * .6, h * .4, h * .4, h * .15).clip();
+        ctx.fill();
+        ctx.drawImage(await images.library[opts.library], w * .875, h * .6, h * .4, h * .4);
     }
 
-    snap(canvas);
-
-
-    return canvas.toBuffer('image/png');
+    return canvas;
 }
 
+export async function bigCard(opts?: Options) {
+    opts = Object.assign({ ...defaultOptions }, opts ?? { });
 
-export async function welcomeImage(member: GuildMember, options: CardOptions = { }): Promise<Buffer> {
-    const opts = { ...options }
-    opts.text ??= { }
-    opts.avatar ??= { }
+    const { canvas, ctx } = setupCard(16 * size, 10 * size),
+        { width: w, height: h } = canvas;
 
-    opts.text.title ??= `Welcome to this server,`;
-    opts.text.text ??= `${member.user.tag}!`;
-    opts.text.subtitle ??= `MemberCount: ${member.guild.memberCount}`;
-    opts.avatar.image ??= await loadImage(member.user.displayAvatarURL({ format: 'png' }));
+    ctx.drawImage(await longCard({ ...opts, library: false }), 0, 0);
 
-    return await drawCard(opts);
-}
+    //Big Text Box
+    //
+    ctx.fillStyle = colors.grey;
+    ctx.roundRect(0, h / 2, w, h, size * .75).clip();
+    ctx.fill();
 
+    //Library
+    //
+    if (opts.library) {
+        ctx.save();
+        ctx.fillStyle = colors.darkgrey;
+        ctx.roundRect(w * .875, h - h * .2, h * .2, h * .2, size * .75).clip();
+        ctx.fill();
+        ctx.drawImage(await images.library[opts.library], w * .875, h - h * .2, h * .2, h * .2);
+        ctx.restore();
+    }
 
-export async function goodbyeImage(member: GuildMember, options: CardOptions = { }): Promise<Buffer> {
-    const opts = { ...options }
-    opts.text ??= { }
-    opts.avatar ??= { }
+    //Description
+    //
+    ctx.fillStyle = colors.lightgrey;
+    ctx.changeFontSize(size * .5 + 'px');
+    drawMultilineText(ctx,
+        opts.description,
+        {
+            rect: {
+                x: size * .5,
+                y: (h / 2) + size * .5,
+                width: w - h * .2,
+                height: (h / 2) - size * .5
+            },
+            verbose: false,
+            lineHeight: 1.4,
+            minFontSize: size * .5,
+            maxFontSize: size * .5
+        }
+    );
 
-    opts.text.title ??= `Goodbye,`;
-    opts.text.text ??= `${member.user.tag}!`;
-    opts.avatar.image ??= await loadImage(member.user.displayAvatarURL({ format: 'png' }));
-
-    return await drawCard(opts);
+    return canvas;
 }
