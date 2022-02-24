@@ -5,6 +5,7 @@ USAGE.md
 #Developement
 node_modules/
 test/
+testing/
 .vscode/
 src/**/*.ts
 *.tgz
