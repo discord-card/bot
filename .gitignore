@@ -1,11 +1,13 @@
-/node_modules
-/package-lock.json
+#Folder
+**/node_modules/
+.vscode/
+
+# Dev
+/test/snapshots/
 /testing
-/.vscode
 
 # Compiled
-*.js
-*.d.ts
-*.map
+/typings
+/lib
 *.tgz
-*.zip
+*.tsbuildinfo
