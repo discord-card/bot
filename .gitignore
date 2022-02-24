@@ -4,7 +4,6 @@
 
 # Dev
 /test/snapshots/
-/testing
 
 # Compiled
 /typings
