@@ -12,7 +12,7 @@ function path(...s) {
     name: 'Plasma',
     tag: '3518',
     description:
-      'Easy to setup • Reliable • FREE! - create a giveaway in your server, manage peoples invites, and use our FREE levelling system!',
+      'Easy to setup • Reliable • FREE! - create a giveaway in your server, manage peoples invites, and use our FREE levelling system! Not made by ∻⚜♥‿♥⋄ ζ͜͡𝓔 | 𝑺𝒌𝒚 ⋄♥‿♥⚜∻#7777 but it uses the following emojis: 🚲🛺🛶🚁🌋🏡🏰🛬😮⚾️🏈🧩🎲',
     status: 'streaming',
     guilds: 254434,
     votes: 89123,
