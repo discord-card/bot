@@ -1,7 +1,9 @@
 import { loadImage } from 'canvas';
 import { join } from 'path';
 
-const root = join(__dirname, '..', 'images');
+function path(...strs) {
+  return join(__dirname, '../images', ...strs);
+}
 
 export const colors = {
   blue: '#7289DA',
@@ -38,23 +40,24 @@ export const defaultOptions: Options = {
 };
 
 export const images = {
-  avatar: loadImage(join(root, 'plasma.png')),
+  avatar: loadImage(path('plasma.png')),
   library: {
-    'discord.js': loadImage(join(root, 'library', 'discord.js.png')),
-    'discord.py': loadImage(join(root, 'library', 'discord.py.png')),
-    jda: loadImage(join(root, 'library', 'jda.png')),
-    discord4j: loadImage(join(root, 'library', 'discord4j.svg')),
+    'discord.js': loadImage(path('library/discord.js.png')),
+    'discord.py': loadImage(path('library/discord.py.png')),
+    jda: loadImage(path('library/jda.png')),
+    discord4j: loadImage(path('library/discord4j.svg')),
+    javacord: loadImage(path('library/javacord.png')),
   },
   icons: {
-    server: loadImage(join(root, 'icons', 'server.svg')),
-    vote: loadImage(join(root, 'icons', 'vote.svg')),
+    server: loadImage(path('icons/server.svg')),
+    vote: loadImage(path('icons/vote.svg')),
   },
   status: {
-    dnd: loadImage(join(root, 'status', 'dnd.svg')),
-    idle: loadImage(join(root, 'status', 'idle.svg')),
-    online: loadImage(join(root, 'status', 'online.svg')),
-    streaming: loadImage(join(root, 'status', 'streaming.svg')),
-    offline: loadImage(join(root, 'status', 'offline.svg')),
+    dnd: loadImage(path('status/dnd.svg')),
+    idle: loadImage(path('status/idle.svg')),
+    online: loadImage(path('status/online.svg')),
+    streaming: loadImage(path('status/streaming.svg')),
+    offline: loadImage(path('status/offline.svg')),
   },
 };
 
